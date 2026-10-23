@@ -5,7 +5,7 @@ const stub = new Proxy({}, { get: (_, k) => (k === "normalizePath" ? (p) => p : 
 Module._load = function (r, ...a) { return r === "obsidian" ? stub : orig.call(this, r, ...a); };
 const fs = require("fs");
 const path = require("path");
-const yaml = require("js-yaml");
+const YAML = require("yaml");
 const T = require(path.join(__dirname, "../src/main.js"))._test;
 const fixture = (name) => fs.readFileSync(path.join(__dirname, "fixtures", name), "utf8");
 
@@ -16,7 +16,7 @@ const eq = (name, got, want) => {
   if (!ok) console.log(`FAIL ${name}\n  got:  ${JSON.stringify(got)}\n  want: ${JSON.stringify(want)}`);
 };
 // A real YAML parser, to prove what we emit round-trips.
-const pyParse = (text) => yaml.load(text);
+const pyParse = (text) => YAML.parse(text);
 
 // ---- YAML emitting: tricky values must come back identical ----
 const tricky = {

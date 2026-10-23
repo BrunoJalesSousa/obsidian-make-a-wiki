@@ -105,7 +105,7 @@ Make-a-Wiki and Tell-A-Tale share character data through note properties:
 | Dialogue colour | the Character template's hidden **Dialogue colour** field → `color` | `color` |
 | Being a character | the template tag `character` | the character tag |
 
-In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). Make-a-Wiki always writes the avatar to whatever property Tell-A-Tale is set to read.
+In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). If you use a different property name there, add it to Make-a-Wiki's **Image properties** setting too.
 
 ---
 
@@ -113,6 +113,18 @@ In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that 
 
 - **Placeholder image** — shown when a sheet has no picture (empty = built-in placeholder)
 - **Image properties** — note properties that mirror the sheet image, comma-separated (default `cover, avatar`)
+
+---
+
+## What the plugin accesses
+
+Everything stays in your vault: no network requests, no telemetry, no clipboard.
+
+- **Reads and writes notes** — only to create a sheet, save the form, or set an image, always through Obsidian's API (and through the open editor when the note is open, so Ctrl+Z works).
+- **Lists the files in your vault** in two places:
+  - the image picker, to show the images you can choose;
+  - when you rename or move an image, to find the sheets that point to it and update their paths. Only notes that contain the old file name are opened.
+- **Renaming a field key or block id** in a template asks first, then updates the notes that use that template.
 
 ---
 

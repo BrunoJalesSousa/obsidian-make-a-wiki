@@ -4,10 +4,10 @@
 const Module = require("module");
 const fs = require("fs");
 const path = require("path");
-const yaml = require("js-yaml");
+const YAML = require("yaml");
 const fixture = (name) => fs.readFileSync(path.join(__dirname, "fixtures", name), "utf8");
 
-const parseYaml = (s) => yaml.load(s);
+const parseYaml = (s) => YAML.parse(s);
 
 global.window = { setTimeout, confirm: () => true };
 global.navigator = { clipboard: { writeText: async () => {} } };
@@ -25,7 +25,7 @@ class El {
   }
   createEl(t, o) { return this._mk(t, o); } createDiv(o) { return this._mk("div", o); } createSpan(o) { return this._mk("span", o); }
   setText(t) { this.text = String(t); this.children = []; } appendText(t) { this._mk("#text", { text: t }); }
-  empty() { this.children = []; } addClass(c) { this.cls.add(c); } setAttrs(a) { Object.assign(this.attrs, a); } setAttr(k, v) { this.attrs[k] = v; }
+  empty() { this.children = []; } addClass(c) { this.cls.add(c); } setAttrs(a) { Object.assign(this.attrs, a); } setCssProps(p) { Object.entries(p).forEach(([k, v]) => this.style.setProperty(k, v)); } setAttr(k, v) { this.attrs[k] = v; }
   addEventListener(e, f) { (this.listeners[e] = this.listeners[e] || []).push(f); }
   fire(e, evt = {}) { (this.listeners[e] || []).forEach((f) => f({ preventDefault() {}, stopPropagation() {}, ...evt })); }
   querySelector() { return null; } focus() {} scrollIntoView() {}

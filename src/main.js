@@ -525,19 +525,9 @@ class MakeAWikiPlugin extends Plugin {
     return this.settings.templates.find((t) => t.id === id);
   }
 
-  /** Image properties to write: the setting, plus whatever property Tell-A-Tale reads avatars from. */
+  /** Note properties that mirror the sheet image (setting "Image properties"). */
   imageProps() {
-    const props = splitProps(this.settings.coverProperty);
-    const tat = this.tellATale();
-    if (tat?.avatarProperty && !props.includes(tat.avatarProperty)) props.push(tat.avatarProperty);
-    return props;
-  }
-
-  /** Tell-A-Tale's settings if it's installed and enabled. */
-  tellATale() {
-    const plugins = this.app.plugins;
-    if (!plugins?.enabledPlugins?.has("tell-a-tale")) return null;
-    return plugins.plugins?.["tell-a-tale"]?.settings || null;
+    return splitProps(this.settings.coverProperty);
   }
 
   /** Full vault path for an image reference (block values may be bare file names). */
@@ -767,7 +757,7 @@ class MakeAWikiPlugin extends Plugin {
   renderValue(td, field, value, sourcePath, child) {
     if (field.type === "color") {
       const sw = td.createSpan({ cls: "maw-swatch" });
-      sw.style.setProperty("--maw-c", String(value));
+      sw.setCssProps({ "--maw-c": String(value) });
       td.appendText(String(value));
       return;
     }
@@ -800,7 +790,7 @@ class MakeAWikiPlugin extends Plugin {
 
   badge(parent, text, rule) {
     const el = parent.createSpan({ cls: "maw-badge", text: rule.icon ? `${rule.icon} ${text}` : text });
-    el.style.setProperty("--maw-c", colorVar(rule.color || "accent"));
+    el.setCssProps({ "--maw-c": colorVar(rule.color || "accent") });
     return el;
   }
 
@@ -912,7 +902,7 @@ class MakeAWikiPlugin extends Plugin {
     const oldName = oldPath.split("/").pop();
     // A bare file name ("CharacterSheet.png") only identified this image if the name changed and no other
     // file still carries the old name — otherwise it may belong to another note's image.
-    const nameStillUsed = this.app.vault.getFiles().some((f) => f.name === oldName);
+    const nameStillUsed = !!this.app.metadataCache.getFirstLinkpathDest(oldName, "");
     const oldRefs = oldName !== file.name && !nameStillUsed ? [oldPath, oldName] : [oldPath];
     const ids = this.settings.templates.map((t) => t.id);
     const n = await this.rewriteVault(oldName, (text) => retargetImage(text, ids, oldRefs, file.path, this.imageProps()));
@@ -1294,15 +1284,11 @@ class TemplateEditorModal extends GuardedModal {
 
     const adv = contentEl.createEl("details", { cls: "maw-advanced" });
     adv.createEl("summary", { text: "Share or import this template as JSON" });
+    adv.createEl("p", { cls: "setting-item-description", text: "Select all and copy the text below to share this template. Paste a template here and apply it to import." });
     const ta = adv.createEl("textarea", { cls: "maw-json" });
     const refreshJson = () => (ta.value = JSON.stringify(this.exportable(), null, 2));
     adv.addEventListener("toggle", refreshJson);
     const advButtons = adv.createDiv({ cls: "maw-form-buttons" });
-    advButtons.createEl("button", { text: "Copy" }).addEventListener("click", async () => {
-      refreshJson();
-      await navigator.clipboard.writeText(ta.value);
-      new Notice("Template copied");
-    });
     advButtons.createEl("button", { text: "Apply pasted JSON" }).addEventListener("click", () => {
       try {
         const parsed = normalizeTemplate(JSON.parse(ta.value));
@@ -1490,7 +1476,7 @@ class FieldOptionsModal extends Modal {
         let preview;
         const refresh = () => {
           preview.setText(r.icon ? `${r.icon} ${r.value || "Value"}` : r.value || "Value");
-          preview.style.setProperty("--maw-c", colorVar(r.color));
+          preview.setCssProps({ "--maw-c": colorVar(r.color) });
         };
         row.addText((t) => t.setPlaceholder("Value or *").setValue(r.value).onChange((v) => { r.value = v.trim(); refresh(); }));
         row.addDropdown((dd) => {
@@ -1592,7 +1578,7 @@ class InfoboxSettingTab extends PluginSettingTab {
       b.setButtonText("New template").setCta().onClick(() => this.editTemplate(clone(BLANK_TEMPLATE), true))
     );
 
-    new Setting(containerEl).setName("General").setHeading();
+    new Setting(containerEl).setName("Images").setHeading();
     const text = (name, desc, key, placeholder = "") =>
       new Setting(containerEl).setName(name).setDesc(desc).addText((t) =>
         t.setPlaceholder(placeholder).setValue(s[key]).onChange((v) => {
@@ -1603,7 +1589,7 @@ class InfoboxSettingTab extends PluginSettingTab {
     text("Placeholder image", "Optional image shown when a sheet has none. Empty = built-in placeholder.", "placeholderImage");
     text(
       "Image properties",
-      "Note properties that mirror the sheet image, comma-separated. \"avatar\" is what Tell-A-Tale shows next to dialogue; \"cover\" is used by card and banner plugins. Empty = don't write any.",
+      "Note properties that mirror the sheet image, comma-separated. \"avatar\" is what Tell-A-Tale shows next to dialogue (match its Avatar property setting); \"cover\" is used by card and banner plugins. Empty = don't write any.",
       "coverProperty",
       "cover, avatar"
     );
