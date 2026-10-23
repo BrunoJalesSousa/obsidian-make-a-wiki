@@ -1,4 +1,5 @@
 node_modules/
-main.js
+# build output only (the source is src/main.js)
+/main.js
 *.js.map
 dist/
