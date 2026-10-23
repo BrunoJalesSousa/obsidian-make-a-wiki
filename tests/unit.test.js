@@ -110,17 +110,6 @@ eq("old dictionaryNote setting dropped", "dictionaryNote" in T.migrateSettings({
 eq("default image properties", T.migrateSettings({ syncCover: true }).coverProperty, "cover, avatar");
 eq("character always present", T.migrateSettings({ templates: [{ id: "item", name: "Item", fields: [{ label: "Name" }] }] }).templates.map((t) => t.id), ["character", "item"]);
 
-// ---- converting a callout-infobox note ----
-for (const f of ["Alice Tanaka.md"]) {
-  const text = fixture(f);
-  const out = T.convertInfobox(text, T.CHARACTER_TEMPLATE);
-  const block = out.match(/```character\n([^]*?)```/)[1];
-  const y = pyParse(block);
-  eq(`${f}: kanji`, typeof y.kanji, "string");
-  eq(`${f}: gender`, y.gender, "Female");
-  eq(`${f}: has tags`, Array.isArray(y.tags) && y.tags.length > 3, true);
-  eq(`${f}: rest of note untouched`, out.split("### Background")[1], text.split("### Background")[1]);
-}
 
 // ---- note properties (Tell-A-Tale integration) ----
 const tpl = T.CHARACTER_TEMPLATE;

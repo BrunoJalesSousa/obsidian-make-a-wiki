@@ -121,8 +121,8 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
 (async () => {
   const PluginClass = require(path.join(__dirname, "../src/main.js"));
   const T = PluginClass._test;
-  // Alice's note, converted, with a second character block further down
-  const converted = T.convertInfobox(aliceText, T.CHARACTER_TEMPLATE) + "\n```character\nname: Second Block\n```\n";
+  // Alice's note, with a second character block further down
+  const converted = aliceText + "\n```character\nname: Second Block\n```\n";
   alice = addFile("Characters/Alice Tanaka.md", converted);
   editorText = converted;
   openView = new MarkdownView(alice);

@@ -429,60 +429,6 @@ function validateTemplate(t, others) {
   return null;
 }
 
-/** Strip Badges-plugin syntax, wikilinks, icons and escapes from a callout table cell. */
-function cleanCell(raw) {
-  let s = raw;
-  s = s.replace(/`?\[!!\\?\|\\?\|comment:(.*?)\\?\|[^\]]*\]`?/g, (_, label) => label);
-  s = s.replace(/\[\[[^\]]*?\\?\|([^\]]+)\]\]/g, "$1");
-  s = s.replace(/\[\[([^\]]+)\]\]/g, "$1");
-  s = s.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, "").replace(/[♀♂⚧]/g, "");
-  s = s.replace(/\\\|/g, "|").replace(/\s{2,}/g, " ").replace(/\s+,/g, ",");
-  return s.trim();
-}
-
-/** Split a markdown table row on unescaped pipes. */
-function splitRow(line) {
-  const cells = line.split(/(?<!\\)\|/);
-  return cells.slice(1, cells.length - 1).map((c) => c.trim());
-}
-
-/**
- * Find the first >[!infobox] callout (+ its table) in `text` and return the text with it replaced
- * by a ```<template id>``` block. Returns null if there is nothing to convert.
- */
-function convertInfobox(text, template) {
-  const eol = eolOf(text);
-  const lines = text.split(/\r?\n/);
-  const start = lines.findIndex((l) => /^>\s*\[!infobox\]/i.test(l));
-  if (start === -1) return null;
-  let end = start + 1;
-  while (end < lines.length && (lines[end].startsWith(">") || lines[end].startsWith("|"))) end++;
-  const block = lines.slice(start, end);
-
-  const data = {};
-  const embed = block.join("\n").match(/!\[\[([^\]|]+)/);
-  if (embed) data.image = embed[1].trim();
-
-  const byLabel = new Map(template.fields.map((f) => [f.label.toLowerCase(), f]));
-  for (const line of block) {
-    if (!line.startsWith("|") || /^\|\s*:?-{3,}/.test(line)) continue;
-    const cells = splitRow(line);
-    if (cells.length < 2) continue;
-    const label = cells[0].replace(/\*\*/g, "").trim();
-    const value = cleanCell(cells.slice(1).join(" "));
-    const field = byLabel.get(label.toLowerCase());
-    const key = field ? field.key : slugKey(label);
-    if (field && MULTI.has(field.type)) {
-      const items = toItems(value);
-      data[key] = items.length === 1 ? items[0] : items;
-    } else {
-      data[key] = value;
-    }
-  }
-
-  return [...lines.slice(0, start), "```" + template.id, toYaml(data), "```", ...lines.slice(end)].join(eol);
-}
-
 /** Bring older settings shapes up to date. */
 function migrateSettings(saved) {
   const s = Object.assign({}, clone(DEFAULT_SETTINGS), saved || {});
@@ -541,23 +487,6 @@ class MakeAWikiPlugin extends Plugin {
       },
     });
 
-    this.addCommand({
-      id: "convert-infobox",
-      name: "Convert infobox callout in current note (character)",
-      checkCallback: (checking) => {
-        const file = this.activeMarkdownFile();
-        if (!file) return false;
-        if (!checking) this.convertFile(file, true);
-        return true;
-      },
-    });
-
-    this.addCommand({
-      id: "convert-all-infoboxes",
-      name: "Convert infobox callouts in characters folder",
-      callback: () => this.convertFolder(),
-    });
-
     // Boxes drawn before the metadata cache finished indexing can't resolve images yet; redraw
     // everything once when it's ready.
     this.cacheReady = false;
@@ -609,17 +538,6 @@ class MakeAWikiPlugin extends Plugin {
     const plugins = this.app.plugins;
     if (!plugins?.enabledPlugins?.has("tell-a-tale")) return null;
     return plugins.plugins?.["tell-a-tale"]?.settings || null;
-  }
-
-  /**
-   * Converting removes the ![[tat-avatar-…]] embed Tell-A-Tale finds avatars by. That's only safe when
-   * Tell-A-Tale reads the avatar property; otherwise explain how to turn it on. Null when there's no issue.
-   */
-  tellATaleAvatarWarning() {
-    const tat = this.tellATale();
-    if (!tat || tat.avatarProperty) return null;
-    return "Tell-A-Tale only finds avatars through embedded tat-avatar- images, and converting removes that embed. " +
-      "Before converting, turn on Settings → Tell-A-Tale → Avatar property (type avatar), or the avatars disappear from dialogues.";
   }
 
   /** Full vault path for an image reference (block values may be bare file names). */
@@ -999,52 +917,6 @@ class MakeAWikiPlugin extends Plugin {
     const ids = this.settings.templates.map((t) => t.id);
     const n = await this.rewriteVault(oldName, (text) => retargetImage(text, ids, oldRefs, file.path, this.imageProps()));
     if (n) new Notice(`Updated the image path in ${n} sheet${n === 1 ? "" : "s"}`);
-  }
-
-  // ----- conversion (character only: that's what the old callout infobox held) -----
-
-  async convertFile(file, notify) {
-    const tpl = this.template("character");
-    if (notify) {
-      const warning = this.tellATaleAvatarWarning();
-      if (warning && /!\[\[tat-avatar-/i.test(await this.app.vault.cachedRead(file))) {
-        const go = await confirmModal(this.app, { title: "Tell-A-Tale avatar", body: warning, cta: "Convert anyway", warning: true });
-        if (!go) return false;
-      }
-    }
-    // The old callout embedded the avatar (![[tat-avatar-…]]), which is how Tell-A-Tale found it. The block
-    // isn't an embed, so mirror the image into the note properties or the avatar would vanish from dialogues.
-    const changed = await this.modifyNote(file, (text) => {
-      const out = convertInfobox(text, tpl);
-      if (out === null) return text;
-      const scan = scanBlocks(out);
-      const b = locateBlock(scan, tpl.id, null);
-      let data = {};
-      try { data = parseYaml(blockBody(scan, b)) || {}; } catch (e) { /* leave properties alone */ }
-      return applyProperties(out, propertyUpdates(tpl, data, null, this.imagePath(data.image, file.path), this.imageProps()));
-    });
-    if (notify) new Notice(changed ? `Converted the infobox in ${file.basename}` : "No [!infobox] callout in this note.");
-    return changed;
-  }
-
-  async convertFolder() {
-    const folder = normalizePath(this.template("character").folder || "/");
-    const files = this.app.vault.getMarkdownFiles().filter((f) => folder === "/" || f.path.startsWith(folder + "/"));
-    const candidates = [];
-    for (const f of files) if (/^>\s*\[!infobox\]/im.test(await this.app.vault.cachedRead(f))) candidates.push(f);
-    if (!candidates.length) return new Notice(`No [!infobox] callouts under "${folder}".`);
-    const warning = this.tellATaleAvatarWarning();
-    const ok = await confirmModal(this.app, {
-      title: "Convert infobox callouts",
-      body: `Rewrite the infobox in ${candidates.length} note${candidates.length === 1 ? "" : "s"} as a character block?\n\n${candidates.map((f) => "• " + f.basename).join("\n")}` +
-        (warning ? `\n\n⚠ ${warning}` : ""),
-      cta: warning ? "Convert anyway" : "Convert",
-      warning: !!warning,
-    });
-    if (!ok) return;
-    let n = 0;
-    for (const f of candidates) if (await this.convertFile(f, false)) n++;
-    new Notice(`Converted ${n} of ${candidates.length} notes`);
   }
 
   // ----- template changes that touch notes -----
@@ -1768,7 +1640,7 @@ class InfoboxSettingTab extends PluginSettingTab {
 
 module.exports = MakeAWikiPlugin;
 module.exports._test = {
-  convertInfobox, cleanCell, toYaml, yamlScalar, scanBlocks, locateBlock, rewriteBlock, setYamlLine,
+  toYaml, yamlScalar, scanBlocks, locateBlock, rewriteBlock, setYamlLine,
   setFrontmatterProp, renameKeysInBlocks, renameBlockId, retargetImage, formToData, dataToForm,
   fillFileName, fillPattern, normalizeTemplate, propertyUpdates, applyProperties, splitProps, validateTemplate, migrateSettings, CHARACTER_TEMPLATE, BLANK_TEMPLATE,
 };

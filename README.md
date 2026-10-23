@@ -46,8 +46,6 @@ Hover the box for the **✎ edit** button (and the image for **change image**). 
 | New sheet… / New *Template* | Create a note from a template |
 | Edit sheet in current note | Open the form for the note's sheet |
 | Set sheet image | Pick the sheet's picture |
-| Convert infobox callout in current note | Turn an old `> [!infobox]` callout table into a sheet |
-| Convert infobox callouts in characters folder | Same, for every character note at once |
 
 ---
 
@@ -107,7 +105,7 @@ Make-a-Wiki and Tell-A-Tale share character data through note properties:
 | Dialogue colour | the Character template's hidden **Dialogue colour** field → `color` | `color` |
 | Being a character | the template tag `character` | the character tag |
 
-In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). Make-a-Wiki warns you before converting an old infobox if it isn't on, and always writes to whatever property Tell-A-Tale is set to read.
+In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). Make-a-Wiki always writes the avatar to whatever property Tell-A-Tale is set to read.
 
 ---
 
