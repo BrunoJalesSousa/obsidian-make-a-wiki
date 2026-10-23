@@ -88,7 +88,7 @@ Lists are written `[a, b, c]`. Keys the template doesn't know about still show u
 | List | a comma-separated list, plain |
 | Colour | a colour swatch (with a picker in the form) |
 
-The ⚙ button on a field sets its **badge colours**, **form hint**, whether it's **saved as a note property**, and whether it's **hidden in the infobox**. Any field takes any text — names in kanji, Cyrillic, emoji…
+The 👁 button on a field shows or hides it in the infobox — hidden fields stay in the form (the Character template's **Colour** starts hidden). The ⚙ button sets its **badge colours**, **form hint**, and whether it's **saved as a note property**. Any field takes any text — names in kanji, Cyrillic, emoji…
 
 Renaming a field key or a block id offers to update every note that uses the template. Templates can be shared: open **Share or import this template as JSON**, copy, and paste into another vault.
 
@@ -101,7 +101,7 @@ Make-a-Wiki and Tell-A-Tale share character data through note properties:
 | | Make-a-Wiki writes | Tell-A-Tale reads |
 |---|---|---|
 | Avatar | the sheet image → `avatar` (and `cover`) | the `avatar` property, when the note has no `tat-avatar-` embed |
-| Dialogue colour | the Character template's **Colour** field → `color` | `color` |
+| Dialogue colour | the Character template's **Colour** field → `color` (hidden in the box by default; turn it on with 👁) | `color` |
 | Being a character | the template tag `character` | the character tag |
 
 In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). If you use a different property name there, add it to Make-a-Wiki's **Image properties** setting too.

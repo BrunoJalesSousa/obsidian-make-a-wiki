@@ -63,8 +63,9 @@ const CHARACTER_TEMPLATE = {
     { key: "blood", label: "Blood type", type: "text" },
     { key: "languages", label: "Languages", type: "list" },
     { key: "tags", label: "Tags", type: "badges", badges: { "*": { color: "accent" } } },
-    // shown as a swatch; also saved as the `color` property, which Tell-A-Tale uses for dialogue blocks
-    { key: "color", label: "Colour", type: "color", hint: "#e06c75", property: "color" },
+    // Off in the infobox by default (turn it on with the eye button in the template editor). Still in the
+    // form, and saved as the `color` property, which Tell-A-Tale uses for dialogue blocks.
+    { key: "color", label: "Colour", type: "color", hint: "#e06c75", property: "color", hidden: true },
   ],
 };
 
@@ -1267,7 +1268,7 @@ class TemplateEditorModal extends GuardedModal {
     contentEl.createEl("h3", { text: "Fields" });
     contentEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Label = what the infobox shows. Key = the name used inside the note's block. The first field is required. ⚙ sets badge colours, form hints, note properties and visibility.",
+      text: "Label = what the infobox shows. Key = the name used inside the note's block. The first field is required. 👁 shows or hides a field in the infobox (it stays in the form). ⚙ sets badge colours, form hints and note properties.",
     });
     const fieldsEl = contentEl.createDiv({ cls: "maw-fields" });
     this.renderFields(fieldsEl);
@@ -1358,6 +1359,17 @@ class TemplateEditorModal extends GuardedModal {
           this.renderFields(el);
         });
       });
+      row.addExtraButton((b) =>
+        b
+          .setIcon(f.hidden ? "eye-off" : "eye")
+          .setTooltip(f.hidden ? "Hidden in the infobox (still in the form) — click to show" : "Shown in the infobox — click to hide")
+          .onClick(() => {
+            f.hidden = !f.hidden;
+            if (!f.hidden) delete f.hidden;
+            this.dirty = true;
+            this.renderFields(el);
+          })
+      );
       row.addExtraButton((b) =>
         b.setIcon("settings").setTooltip("Field options").onClick(() =>
           new FieldOptionsModal(this.app, this.plugin, f, () => {
