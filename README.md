@@ -146,7 +146,7 @@ Copy `main.js`, `styles.css` and `manifest.json` to your vault's `.obsidian/plug
 Bump the version in `manifest.json`, `package.json` and `versions.json`, commit, then push a tag with the same number:
 
 ```bash
-git tag 1.0.0 && git push origin 1.0.0
+git tag 1.0.2 && git push origin 1.0.2
 ```
 
 The release workflow builds the plugin and attaches `main.js`, `styles.css` and `manifest.json` to a GitHub release — which is what Obsidian installs from.
