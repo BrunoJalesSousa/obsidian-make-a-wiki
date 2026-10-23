@@ -101,10 +101,15 @@ Make-a-Wiki and Tell-A-Tale share character data through note properties:
 | | Make-a-Wiki writes | Tell-A-Tale reads |
 |---|---|---|
 | Avatar | the sheet image → `avatar` (and `cover`) | the `avatar` property, when the note has no `tat-avatar-` embed |
-| Dialogue colour | the Character template's **Colour** field → `color` (hidden in the box by default; turn it on with 👁) | `color` |
+| Dialogue colour | the Character template's **Colour** field → `color` | `color` |
 | Being a character | the template tag `character` | the character tag |
 
-In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). If you use a different property name there, add it to Make-a-Wiki's **Image properties** setting too.
+**Avatar** — in Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). If you use a different property name there, add it to Make-a-Wiki's **Image properties** setting too.
+
+**Dialogue colour** is opt-in: it's only written when you pick a colour in a character's form. Leave it empty and Tell-A-Tale keeps the colour it generates on its own. Two independent switches, both in the Character template editor:
+
+- **👁 on the Colour field** — show the colour as a swatch in the infobox. Off by default; the field is in the form either way.
+- **⚙ → Also save as note property** — `color` by default, which is what sends it to Tell-A-Tale. Clear it to keep colours out of Tell-A-Tale entirely.
 
 ---
 
