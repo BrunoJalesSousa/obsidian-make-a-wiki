@@ -63,8 +63,8 @@ const CHARACTER_TEMPLATE = {
     { key: "blood", label: "Blood type", type: "text" },
     { key: "languages", label: "Languages", type: "list" },
     { key: "tags", label: "Tags", type: "badges", badges: { "*": { color: "accent" } } },
-    // Tell-A-Tale reads `color` from the note's properties for dialogue blocks; not shown in the infobox.
-    { key: "color", label: "Dialogue colour", type: "color", hint: "#e06c75", property: "color", hidden: true },
+    // shown as a swatch; also saved as the `color` property, which Tell-A-Tale uses for dialogue blocks
+    { key: "color", label: "Colour", type: "color", hint: "#e06c75", property: "color" },
   ],
 };
 

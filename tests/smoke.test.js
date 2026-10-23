@@ -151,13 +151,11 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
 
   // a visible colour field shows only the swatch (the code is in the tooltip)
   const colorField = plugin.template("character").fields.find((f) => f.key === "color");
-  colorField.hidden = false;
   const elC = new El("div");
   processors.character('name: C\ncolor: "#9fd3c7"', elC, { sourcePath: alice.path, addChild: (c) => c.onload(), getSectionInfo: () => null });
-  const cRow = elC.all((e) => e.tag === "tr").find((r) => r.children[0].text === "Dialogue colour");
+  const cRow = elC.all((e) => e.tag === "tr").find((r) => r.children[0].text === "Colour");
   const sw = cRow && cRow.children[1].children[0];
   check("colour shows swatch, not hex text", sw && sw.cls.has("maw-swatch") && sw.style.props["--maw-c"] === "#9fd3c7" && sw.attrs.title === "#9fd3c7" && cRow.children[1].textContent() === "", cRow && cRow.children[1].textContent());
-  colorField.hidden = true;
 
   // click ✎ → form opens with current values
   box.find("maw-edit").fire("click");

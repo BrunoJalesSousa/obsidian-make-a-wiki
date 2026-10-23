@@ -101,7 +101,7 @@ Make-a-Wiki and Tell-A-Tale share character data through note properties:
 | | Make-a-Wiki writes | Tell-A-Tale reads |
 |---|---|---|
 | Avatar | the sheet image → `avatar` (and `cover`) | the `avatar` property, when the note has no `tat-avatar-` embed |
-| Dialogue colour | the Character template's hidden **Dialogue colour** field → `color` | `color` |
+| Dialogue colour | the Character template's **Colour** field → `color` | `color` |
 | Being a character | the template tag `character` | the character tag |
 
 In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that predate the setting have it off). If you use a different property name there, add it to Make-a-Wiki's **Image properties** setting too.
