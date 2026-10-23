@@ -44,11 +44,10 @@ const CHARACTER_TEMPLATE = {
   heading: "General Information",
   // file "Alice Tanaka.md", title "Alice Tanaka - 愛 田中"
   fileName: "{name}",
-  title: "{name} - {kanji}",
+  title: "",
   sections: ["Background", "Visuals", "Relationships"],
   fields: [
-    { key: "name", label: "Name (Romaji)", type: "text" },
-    { key: "kanji", label: "Name (Kanji)", type: "text" },
+    { key: "name", label: "Name", type: "text" },
     { key: "race", label: "Race", type: "text" },
     { key: "age", label: "Age", type: "text" },
     { key: "birthday", label: "Birthday", type: "text", hint: "14 April 1994" },
@@ -356,7 +355,7 @@ function dataToForm(data) {
   return values;
 }
 
-/** "{name} - {kanji}" + values → "Alice Tanaka - 愛 田中"; empty tokens drop their separators. */
+/** "{name} ({rarity})" + values → "Rusty Key (Rare)"; empty tokens drop their separators. */
 function fillPattern(pattern, values) {
   let out = pattern.replace(/\{([^}]+)\}/g, (_, k) => {
     const v = values[k];
@@ -756,9 +755,9 @@ class MakeAWikiPlugin extends Plugin {
 
   renderValue(td, field, value, sourcePath, child) {
     if (field.type === "color") {
-      const sw = td.createSpan({ cls: "maw-swatch" });
+      // just the colour; the code is in the tooltip
+      const sw = td.createSpan({ cls: "maw-swatch", attr: { title: String(value), "aria-label": String(value) } });
       sw.setCssProps({ "--maw-c": String(value) });
-      td.appendText(String(value));
       return;
     }
 
@@ -1249,7 +1248,7 @@ class TemplateEditorModal extends GuardedModal {
       .addText((t) => t.setPlaceholder(`{${d.fields[0]?.key || "name"}}`).setValue(d.fileName).onChange((v) => (d.fileName = v)));
     new Setting(contentEl)
       .setName("Title property")
-      .setDesc("The note's `title:` frontmatter, e.g. {name} - {kanji}. Empty = same as the file name.")
+      .setDesc("The note's `title:` frontmatter, e.g. {name} ({rarity}). Empty = same as the file name.")
       .addText((t) => t.setValue(d.title).onChange((v) => (d.title = v)));
     new Setting(contentEl).setName("Tag").setDesc("Added to new notes' tags. Empty = none.").addText((t) =>
       t.setValue(d.tag).onChange((v) => (d.tag = v.trim()))

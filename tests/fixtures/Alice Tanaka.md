@@ -1,6 +1,6 @@
 ---
 cover: Media/Alice/tat-avatar-AliceAvatar.png
-title: Alice Tanaka - 愛 田中
+title: Alice Tanaka
 tags:
   - character
 avatar: Media/Alice/tat-avatar-AliceAvatar.png
@@ -9,7 +9,6 @@ avatar: Media/Alice/tat-avatar-AliceAvatar.png
 ```character
 image: tat-avatar-AliceAvatar.png
 name: Alice Tanaka
-kanji: 愛 田中
 race: Human
 age: 17
 birthday: "14, April 1994"

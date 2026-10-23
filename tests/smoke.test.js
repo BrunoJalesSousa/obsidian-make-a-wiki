@@ -141,13 +141,23 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
   const box = el.find("maw-infobox");
   check("box rendered", !!box, JSON.stringify(el.textContent()).slice(0, 200));
   const rows = box.all((e) => e.tag === "tr");
-  check("all 14 rows rendered", rows.length === 14, `got ${rows.length}`);
-  const kanjiRow = rows.find((r) => r.children[0].text === "Name (Kanji)");
-  check("kanji is plain text", kanjiRow && kanjiRow.children[1].textContent() === "愛 田中" && !box.all((e) => e.tag === "a").length, kanjiRow && kanjiRow.children[1].textContent());
+  check("all 13 rows rendered", rows.length === 13, `got ${rows.length}`);
+  const nameRow = rows.find((r) => r.children[0].text === "Name");
+  check("single Name row", nameRow && nameRow.children[1].textContent() === "Alice Tanaka" && !rows.some((r) => /Kanji|Romaji/.test(r.children[0].text)));
   const badges = box.all((e) => e.cls.has("maw-badge")).map((b) => b.text);
   check("badges", badges.includes("♀ Female") && badges.includes("🇯🇵 Japan") && badges.includes("Shy"), JSON.stringify(badges));
   check("image resolved", !!box.find("maw-image") && box.find("maw-image").attrs.src.includes("tat-avatar-AliceAvatar"));
   check("no error box", !el.find("maw-error"));
+
+  // a visible colour field shows only the swatch (the code is in the tooltip)
+  const colorField = plugin.template("character").fields.find((f) => f.key === "color");
+  colorField.hidden = false;
+  const elC = new El("div");
+  processors.character('name: C\ncolor: "#9fd3c7"', elC, { sourcePath: alice.path, addChild: (c) => c.onload(), getSectionInfo: () => null });
+  const cRow = elC.all((e) => e.tag === "tr").find((r) => r.children[0].text === "Dialogue colour");
+  const sw = cRow && cRow.children[1].children[0];
+  check("colour shows swatch, not hex text", sw && sw.cls.has("maw-swatch") && sw.style.props["--maw-c"] === "#9fd3c7" && sw.attrs.title === "#9fd3c7" && cRow.children[1].textContent() === "", cRow && cRow.children[1].textContent());
+  colorField.hidden = true;
 
   // click ✎ → form opens with current values
   box.find("maw-edit").fire("click");
@@ -205,18 +215,18 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
   check("existing path blocked", modals.includes(creator) && /already exists/.test(creator.errorEl.text), creator.errorEl.text);
 
   // creating a sheet for a new character
-  await plugin.createSheet(plugin.template("character"), { name: "Ken Mori", kanji: "森 健", gender: "Male", tags: "Controlled, Sharp" });
-  const created = files.get("Characters/Ken Mori.md");
+  await plugin.createSheet(plugin.template("character"), { name: "Ken Mori 森健", gender: "Male", tags: "Controlled, Sharp" });
+  const created = files.get("Characters/Ken Mori 森健.md");
   check("new note created", !!created, [...files.keys()].join(" | "));
   if (created) {
-    check("title has kanji, file name doesn't", /^title: Ken Mori - 森 健$/m.test(created.text), created.text.slice(0, 120));
+    check("title = file name", /^title: Ken Mori 森健$/m.test(created.text), created.text.slice(0, 120));
     check("new note has block + sections", /```character\n/.test(created.text) && /### Visuals/.test(created.text) && /tags:\n  - character/.test(created.text));
     const nb = T.scanBlocks(created.text).blocks[0];
     const nd = parseYaml(T.scanBlocks(created.text).lines.slice(nb.start + 1, nb.end).join("\n"));
-    check("new note data", nd.name === "Ken Mori" && nd.tags.join() === "Controlled,Sharp" && nd.gender === "Male", JSON.stringify(nd));
+    check("new note data", nd.name === "Ken Mori 森健" && nd.tags.join() === "Controlled,Sharp" && nd.gender === "Male", JSON.stringify(nd));
     const el3 = new El("div");
     processors.character(T.scanBlocks(created.text).lines.slice(nb.start + 1, nb.end).join("\n"), el3, { sourcePath: created.file.path, addChild: (c) => c.onload(), getSectionInfo: () => null });
-    check("new sheet renders kanji as text", el3.textContent().includes("森 健") && !el3.all((e) => e.tag === "a").length);
+    check("new sheet renders kanji as text", el3.textContent().includes("Ken Mori 森健") && !el3.all((e) => e.tag === "a").length);
     check("placeholder shown", !!el3.find("maw-placeholder"));
   }
 

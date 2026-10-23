@@ -57,7 +57,6 @@ The infobox is a code block named after its template. It stays readable as plain
 ```character
 image: Media/Alice/portrait.png
 name: Alice Tanaka
-kanji: 愛 田中
 age: 17
 gender: Female
 birthplace: [Fictional, Japan]
@@ -76,7 +75,7 @@ Lists are written `[a, b, c]`. Keys the template doesn't know about still show u
 
 - **Name** and **block id** — "Item" → notes use an ` ```item ` block
 - **Folder** — where new notes go
-- **File name** and **title property** — patterns using field keys, e.g. `{name}` and `{name} - {kanji}`
+- **File name** and **title property** — patterns using field keys, e.g. `{name}` and `{name} ({rarity})`
 - **Tag** — added to new notes (Tell-A-Tale finds characters by tag)
 - **Infobox heading** and **body sections** (each section becomes a `###` heading in new notes)
 - **Fields** — label, key and type:
