@@ -89,11 +89,6 @@
   white-space: nowrap;
 }
 
-.maw-kanji-missing {
-  text-decoration: underline dotted;
-  text-decoration-color: var(--text-error);
-  cursor: pointer;
-}
 
 .maw-error {
   color: var(--text-error);

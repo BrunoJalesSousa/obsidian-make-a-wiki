@@ -102,9 +102,11 @@ eq("unknown filename key", T.validateTemplate(norm({ name: "I", id: "i", fileNam
 eq("image key reserved", T.validateTemplate(norm({ name: "I", id: "i", fields: [{ label: "Image" }] }), []) !== null, true);
 eq("unicode label → key", norm({ fields: [{ label: "名前" }] }).fields[0].key, "名前");
 eq("bad type → text", norm({ fields: [{ label: "X", type: "weird" }] }).fields[0].type, "text");
+eq("old kanji type → text, dictionary dropped", norm({ fields: [{ label: "K", key: "kanji", type: "kanji", dictionary: "D.md" }] }).fields[0], { key: "kanji", label: "K", type: "text" });
 
 // ---- settings migration ----
 eq("0.2 syncCover false → no property", T.migrateSettings({ syncCover: false }).coverProperty, "");
+eq("old dictionaryNote setting dropped", "dictionaryNote" in T.migrateSettings({ dictionaryNote: "x.md" }), false);
 eq("default image properties", T.migrateSettings({ syncCover: true }).coverProperty, "cover, avatar");
 eq("character always present", T.migrateSettings({ templates: [{ id: "item", name: "Item", fields: [{ label: "Name" }] }] }).templates.map((t) => t.id), ["character", "item"]);
 

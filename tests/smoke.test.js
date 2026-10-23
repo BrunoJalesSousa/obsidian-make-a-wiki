@@ -38,8 +38,6 @@ class El {
 class TFile { constructor(path) { this.path = path; this.name = path.split("/").pop(); this.basename = this.name.replace(/\.[^.]+$/, ""); this.extension = this.name.split(".").pop(); } }
 const files = new Map();
 const addFile = (path, text = "") => { const f = new TFile(path); files.set(path, { file: f, text }); return f; };
-const dictText = fixture("Dictionary.md");
-const dict = addFile("Research Notes/Jap Dictionary.md", dictText);
 const avatar = addFile("Media/Alice/tat-avatar-AliceAvatar.png");
 const newImg = addFile("Media/Alice/CharacterSheet.png");
 
@@ -88,7 +86,7 @@ const app = {
     create: async (p, t) => addFile(p, t), createFolder: async () => {}, on: () => ({}),
   },
   metadataCache: {
-    getFileCache: (f) => f === dict ? { headings: [...dictText.matchAll(/^#+\s+(.+)$/gm)].map((m) => ({ heading: m[1] })) } : null,
+    getFileCache: () => null,
     getFirstLinkpathDest: (name) => [...files.values()].map((x) => x.file).find((f) => f.name === name) || null,
     on: () => ({}),
   },
@@ -144,8 +142,8 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
   check("box rendered", !!box, JSON.stringify(el.textContent()).slice(0, 200));
   const rows = box.all((e) => e.tag === "tr");
   check("all 14 rows rendered", rows.length === 14, `got ${rows.length}`);
-  const links = box.all((e) => e.tag === "a" && e.cls.has("internal-link")).map((a) => a.attrs["data-href"]);
-  check("kanji link to dictionary", links.includes("Jap Dictionary#愛 (Ai)") && links.length === 3, JSON.stringify(links));
+  const kanjiRow = rows.find((r) => r.children[0].text === "Name (Kanji)");
+  check("kanji is plain text", kanjiRow && kanjiRow.children[1].textContent() === "愛 田中" && !box.all((e) => e.tag === "a").length, kanjiRow && kanjiRow.children[1].textContent());
   const badges = box.all((e) => e.cls.has("maw-badge")).map((b) => b.text);
   check("badges", badges.includes("♀ Female") && badges.includes("🇯🇵 Japan") && badges.includes("Shy"), JSON.stringify(badges));
   check("image resolved", !!box.find("maw-image") && box.find("maw-image").attrs.src.includes("tat-avatar-AliceAvatar"));
@@ -216,11 +214,9 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
     const nb = T.scanBlocks(created.text).blocks[0];
     const nd = parseYaml(T.scanBlocks(created.text).lines.slice(nb.start + 1, nb.end).join("\n"));
     check("new note data", nd.name === "Ken Mori" && nd.tags.join() === "Controlled,Sharp" && nd.gender === "Male", JSON.stringify(nd));
-    // rendering it: 森 / 健 are not in the dictionary → missing markers, latin stays plain
     const el3 = new El("div");
     processors.character(T.scanBlocks(created.text).lines.slice(nb.start + 1, nb.end).join("\n"), el3, { sourcePath: created.file.path, addChild: (c) => c.onload(), getSectionInfo: () => null });
-    const missing = el3.all((e) => e.cls.has("maw-kanji-missing")).map((e) => e.text);
-    check("missing kanji flagged", missing.includes("森") && missing.includes("健"), JSON.stringify(missing));
+    check("new sheet renders kanji as text", el3.textContent().includes("森 健") && !el3.all((e) => e.tag === "a").length);
     check("placeholder shown", !!el3.find("maw-placeholder"));
   }
 

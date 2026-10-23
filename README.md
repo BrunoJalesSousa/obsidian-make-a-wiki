@@ -15,7 +15,6 @@ This is a WIP: things may change or break as it evolves. Expect some bugs here a
 - **Templates** — a built-in **Character** template, plus your own (Item, Location, Faction…), each with its own fields, folder, file name, tag and body sections
 - **Forms** — create a new sheet or edit an existing one from a form; never touch the block unless you want to
 - **Coloured badges** — per value (Female → pink, Rare → yellow) or for any value, using your theme's accent colour by default
-- **Dictionary links** — kanji in a name link to their entries in a dictionary note; missing ones are flagged and can be added in one click
 - **Note properties** — the image and any field can be mirrored into the note's properties, for Tell-A-Tale, Dataview, Bases or card/banner plugins
 - **Safe editing** — edits go through the open editor (Ctrl+Z undoes them), target the exact block you clicked, and never drop data the form doesn't know about
 - **Image paths that follow renames** — move or rename a picture and every sheet using it is updated
@@ -90,10 +89,9 @@ Lists are written `[a, b, c]`. Keys the template doesn't know about still show u
 | Choice | one value; a coloured badge if it has a colour |
 | Badges | a comma-separated list, each a badge |
 | List | a comma-separated list, plain |
-| Kanji | each kanji links to a heading in the dictionary note |
 | Colour | a colour swatch (with a picker in the form) |
 
-The ⚙ button on a field sets its **badge colours**, **form hint**, **dictionary note**, whether it's **saved as a note property**, and whether it's **hidden in the infobox**.
+The ⚙ button on a field sets its **badge colours**, **form hint**, whether it's **saved as a note property**, and whether it's **hidden in the infobox**. Any field takes any text — names in kanji, Cyrillic, emoji…
 
 Renaming a field key or a block id offers to update every note that uses the template. Templates can be shared: open **Share or import this template as JSON**, copy, and paste into another vault.
 
@@ -115,7 +113,6 @@ In Tell-A-Tale, set **Settings → Avatar property** to `avatar` (installs that 
 
 ## Settings
 
-- **Dictionary note** — default note for Kanji fields (a field can use its own)
 - **Placeholder image** — shown when a sheet has no picture (empty = built-in placeholder)
 - **Image properties** — note properties that mirror the sheet image, comma-separated (default `cover, avatar`)
 

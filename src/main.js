@@ -9,14 +9,13 @@
  * changes are never overwritten), and targets the exact block that was clicked.
  */
 const {
-  Plugin, PluginSettingTab, Setting, Modal, FuzzySuggestModal, SuggestModal, Notice, TFile, Keymap,
+  Plugin, PluginSettingTab, Setting, Modal, FuzzySuggestModal, SuggestModal, Notice, TFile,
   MarkdownView, MarkdownRenderChild, Platform, parseYaml, normalizePath, setIcon, debounce,
 } = require("obsidian");
 
 const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "webp", "gif", "svg", "bmp", "avif"]);
 // "accent" follows the theme's accent colour (Settings → Appearance), so it changes when the user changes it.
 const COLORS = ["accent", "red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink", "mono"];
-const KANJI = /\p{Script=Han}/u;
 // Block ids a template must not take over: real languages and other plugins' blocks.
 const RESERVED_IDS = new Set([
   "js", "javascript", "ts", "typescript", "jsx", "tsx", "py", "python", "rb", "ruby", "go", "rust", "java",
@@ -26,14 +25,13 @@ const RESERVED_IDS = new Set([
 ]);
 
 // text: plain · choice: one value, badge if it has a colour · badges: comma list, each a badge
-// list: comma list, plain · kanji: kanji link to headings in a dictionary note
+// list: comma list, plain · color: a swatch
 const FIELD_TYPES = {
   text: "Text",
   choice: "Choice (one badge)",
   badges: "Badges (list)",
   list: "List (plain)",
   color: "Colour (swatch)",
-  kanji: "Kanji (dictionary links)",
 };
 const MULTI = new Set(["badges", "list"]);
 
@@ -50,7 +48,7 @@ const CHARACTER_TEMPLATE = {
   sections: ["Background", "Visuals", "Relationships"],
   fields: [
     { key: "name", label: "Name (Romaji)", type: "text" },
-    { key: "kanji", label: "Name (Kanji)", type: "kanji" },
+    { key: "kanji", label: "Name (Kanji)", type: "text" },
     { key: "race", label: "Race", type: "text" },
     { key: "age", label: "Age", type: "text" },
     { key: "birthday", label: "Birthday", type: "text", hint: "14 April 1994" },
@@ -84,7 +82,6 @@ const BLANK_TEMPLATE = {
 };
 
 const DEFAULT_SETTINGS = {
-  dictionaryNote: "Research Notes/Jap Dictionary.md",
   placeholderImage: "",
   // comma-separated: cover for card/banner plugins, avatar for Tell-A-Tale
   coverProperty: "cover, avatar",
@@ -395,7 +392,6 @@ function normalizeTemplate(t) {
       const n = { key: slugKey(f.key || f.label), label: String(f.label || f.key), type: FIELD_TYPES[f.type] ? f.type : "text" };
       if (f.badges && typeof f.badges === "object") n.badges = f.badges;
       if (f.hint) n.hint = String(f.hint);
-      if (f.dictionary) n.dictionary = String(f.dictionary);
       if (f.property) n.property = String(f.property).trim();
       if (f.hidden) n.hidden = true;
       return n;
@@ -500,7 +496,7 @@ function migrateSettings(saved) {
   }
   // 0.2 had a syncCover toggle instead of a property name
   if (saved && saved.syncCover === false && saved.coverProperty === undefined) s.coverProperty = "";
-  for (const k of ["fields", "badges", "heading", "charactersFolder", "syncCover"]) delete s[k];
+  for (const k of ["fields", "badges", "heading", "charactersFolder", "syncCover", "dictionaryNote"]) delete s[k];
   if (!s.templates.some((t) => t.id === "character")) s.templates.unshift(clone(CHARACTER_TEMPLATE));
   s.templates = s.templates.map((t) => normalizeTemplate(t.id === "character" ? { ...t, builtin: true } : t));
   return s;
@@ -562,8 +558,8 @@ class MakeAWikiPlugin extends Plugin {
       callback: () => this.convertFolder(),
     });
 
-    // Boxes drawn before the metadata cache finished indexing can't resolve images or dictionary
-    // headings yet; redraw everything once when it's ready.
+    // Boxes drawn before the metadata cache finished indexing can't resolve images yet; redraw
+    // everything once when it's ready.
     this.cacheReady = false;
     this.registerEvent(this.app.metadataCache.on("resolved", () => {
       if (this.cacheReady) return;
@@ -753,7 +749,6 @@ class MakeAWikiPlugin extends Plugin {
     const { containerEl: el, sourcePath } = child;
     const tpl = this.template(child.templateId);
     el.empty();
-    child.dictPaths = new Set();
 
     if (!tpl) {
       el.createDiv({ cls: "maw-error", text: `No template uses the block id "${child.templateId}" (was it deleted or renamed?).` });
@@ -852,8 +847,6 @@ class MakeAWikiPlugin extends Plugin {
   }
 
   renderValue(td, field, value, sourcePath, child) {
-    if (field.type === "kanji") return this.renderKanji(td, field, String(value), sourcePath, child);
-
     if (field.type === "color") {
       const sw = td.createSpan({ cls: "maw-swatch" });
       sw.style.setProperty("--maw-c", String(value));
@@ -898,52 +891,6 @@ class MakeAWikiPlugin extends Plugin {
     if (!rules) return null;
     const match = Object.keys(rules).find((k) => k !== "*" && k.toLowerCase() === item.toLowerCase());
     return match ? rules[match] : rules["*"] || null;
-  }
-
-  renderKanji(td, field, text, sourcePath, child) {
-    const dictRef = field.dictionary || this.settings.dictionaryNote;
-    const dict = this.resolveFile(dictRef, sourcePath);
-    if (dict) child.dictPaths.add(dict.path);
-    const headings = dict ? (this.app.metadataCache.getFileCache(dict)?.headings || []) : [];
-    for (const ch of Array.from(text)) {
-      // only kanji are dictionary material; latin letters, kana and punctuation stay plain
-      if (!KANJI.test(ch) || !dictRef) { td.appendText(ch); continue; }
-      const h = headings.find((x) => {
-        const t = x.heading.trim();
-        return t === ch || t.startsWith(ch + " ") || t.startsWith(ch + "(");
-      });
-      if (dict && h) {
-        this.makeInternalLink(td, ch, `${dict.basename}#${h.heading}`, sourcePath);
-        continue;
-      }
-      const missing = td.createSpan({
-        cls: "maw-kanji-missing",
-        text: ch,
-        attr: { title: dict ? `No entry for ${ch} in ${dict.basename} — click to add one` : `Dictionary note not found: ${dictRef}` },
-      });
-      if (dict) missing.addEventListener("click", () => this.addDictionaryEntry(dict, ch, sourcePath));
-    }
-  }
-
-  async addDictionaryEntry(dict, ch, sourcePath) {
-    // same shape as the existing entries: heading, indented meaning, --- separator
-    await this.modifyNote(dict, (text) => `${text.replace(/\s*$/, "")}\n\n---\n\n###### ${ch} ()\n\t\n`);
-    new Notice(`Added ${ch} to ${dict.basename} — fill in its reading`);
-    await this.app.workspace.openLinkText(`${dict.basename}#${ch} ()`, sourcePath, "tab");
-  }
-
-  makeInternalLink(parent, text, linktext, sourcePath) {
-    const a = parent.createEl("a", { cls: "internal-link", text, attr: { "data-href": linktext, href: linktext } });
-    a.addEventListener("click", (evt) => {
-      evt.preventDefault();
-      this.app.workspace.openLinkText(linktext, sourcePath, Keymap.isModEvent(evt));
-    });
-    a.addEventListener("mouseover", (evt) => {
-      this.app.workspace.trigger("hover-link", {
-        event: evt, source: "preview", hoverParent: parent, targetEl: a, linktext, sourcePath,
-      });
-    });
-    return a;
   }
 
   /** Accepts "path/to/file.png", "file.png", "[[file.png]]" or "![[file.png|alias]]". */
@@ -1124,16 +1071,11 @@ class InfoboxChild extends MarkdownRenderChild {
     this.source = source;
     this.ctx = ctx;
     this.sourcePath = ctx.sourcePath;
-    this.dictPaths = new Set();
   }
 
   onload() {
     this.plugin.boxes.add(this);
     this.render();
-    // dictionary edits change which kanji link
-    this.registerEvent(this.plugin.app.metadataCache.on("changed", (file) => {
-      if (this.dictPaths.has(file.path)) this.render();
-    }));
   }
 
   onunload() {
@@ -1464,7 +1406,7 @@ class TemplateEditorModal extends GuardedModal {
     contentEl.createEl("h3", { text: "Fields" });
     contentEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Label = what the infobox shows. Key = the name used inside the note's block. The first field is required. ⚙ sets badge colours, form hints and dictionaries.",
+      text: "Label = what the infobox shows. Key = the name used inside the note's block. The first field is required. ⚙ sets badge colours, form hints, note properties and visibility.",
     });
     const fieldsEl = contentEl.createDiv({ cls: "maw-fields" });
     this.renderFields(fieldsEl);
@@ -1624,14 +1566,13 @@ function fieldSummary(f) {
   if ((f.type === "choice" || f.type === "badges") && rules.length) {
     bits.push(rules.map(([v, r]) => `${r.icon ? r.icon + " " : ""}${v === "*" ? "any" : v} → ${r.color}`).join(", "));
   }
-  if (f.type === "kanji" && f.dictionary) bits.push(`dictionary: ${f.dictionary}`);
   if (f.property) bits.push(`→ property "${f.property}"`);
   if (f.hidden) bits.push("hidden in infobox");
   if (f.hint) bits.push(`hint: ${f.hint}`);
   return bits.join(" · ");
 }
 
-/** Per-field options: form hint, badge colours (choice/badges), dictionary note (kanji). */
+/** Per-field options: form hint, note property, visibility, badge colours (choice/badges). */
 class FieldOptionsModal extends Modal {
   constructor(app, plugin, field, onDone) {
     super(app);
@@ -1665,13 +1606,6 @@ class FieldOptionsModal extends Modal {
       .setName("Hide in infobox")
       .setDesc("Keep the field in the form (and the property) but don't show it in the box.")
       .addToggle((t) => t.setValue(!!f.hidden).onChange((v) => (f.hidden = v)));
-
-    if (f.type === "kanji") {
-      new Setting(contentEl)
-        .setName("Dictionary note")
-        .setDesc(`Note whose headings this field's characters link to. Empty = the general setting (${this.plugin.settings.dictionaryNote || "none"}).`)
-        .addText((t) => t.setValue(f.dictionary || "").onChange((v) => (f.dictionary = v.trim())));
-    }
 
     if (f.type === "choice" || f.type === "badges") {
       contentEl.createEl("h3", { text: "Badge colours" });
@@ -1728,7 +1662,6 @@ class FieldOptionsModal extends Modal {
       else delete f.badges;
     }
     if (!f.hint) delete f.hint;
-    if (!f.dictionary) delete f.dictionary;
     if (!f.property) delete f.property;
     if (!f.hidden) delete f.hidden;
     this.contentEl.empty();
@@ -1795,7 +1728,6 @@ class InfoboxSettingTab extends PluginSettingTab {
           this.plugin.saveSettingsSoon();
         })
       );
-    text("Dictionary note", "Default note whose headings Kanji fields link to (e.g. '克 (Katsu)'). A field can override it. Empty disables the links.", "dictionaryNote");
     text("Placeholder image", "Optional image shown when a sheet has none. Empty = built-in placeholder.", "placeholderImage");
     text(
       "Image properties",
