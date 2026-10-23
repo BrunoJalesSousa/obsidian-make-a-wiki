@@ -1,0 +1,19 @@
+{
+  "name": "make-a-wiki",
+  "version": "0.5.1",
+  "description": "Wiki-style infobox sheets for Obsidian",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "test": "node tests/unit.test.js && node tests/smoke.test.js",
+    "deploy": "npm run build && cp main.js styles.css manifest.json /home/jales/Documents/ProjectX/.obsidian/plugins/make-a-wiki/"
+  },
+  "devDependencies": {
+    "esbuild": "0.17.3",
+    "js-yaml": "4.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.17.3": true
+  }
+}

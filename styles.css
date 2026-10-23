@@ -1,0 +1,215 @@
+/* Make-a-Wiki — self-contained styles, no theme/snippet dependency.
+   Colours come from Obsidian's own variables so it follows light/dark and any theme. */
+
+/* ---------- infobox ---------- */
+
+.maw-infobox {
+  position: relative;
+  float: right;
+  clear: right;
+  width: min(320px, 45%);
+  margin: 0 0 1em 1.5em;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 8px);
+  background: var(--background-secondary);
+  font-size: var(--font-ui-small, 0.9em);
+  line-height: 1.4;
+}
+
+.maw-infobox .maw-image-wrap { position: relative; }
+
+.maw-infobox .maw-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-s, 6px);
+}
+
+.maw-infobox .maw-heading {
+  margin: 8px 0 4px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.maw-infobox table.maw-table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  border: none;
+  table-layout: fixed;
+}
+
+.maw-infobox table.maw-table th,
+.maw-infobox table.maw-table td {
+  padding: 4px 6px;
+  border: none;
+  border-top: 1px solid var(--background-modifier-border);
+  background: transparent;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.maw-infobox table.maw-table th {
+  width: 38%;
+  font-weight: 600;
+  color: var(--text-normal);
+  hyphens: auto;
+}
+
+.maw-infobox tr.maw-unknown th {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.maw-empty {
+  padding: 8px 6px 2px;
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: pointer;
+}
+
+/* Badges: --maw-c is any CSS colour (theme accent by default). Tinted background; text mixed toward the
+   normal text colour so pale colours (yellow, cyan, a light accent) stay legible. */
+.maw-badge {
+  display: inline-block;
+  margin: 1px 3px 1px 0;
+  padding: 0 0.55em;
+  border: 1px solid color-mix(in srgb, var(--maw-c) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--maw-c) 16%, transparent);
+  color: color-mix(in srgb, var(--maw-c) 70%, var(--text-normal));
+  font-size: 0.9em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.maw-kanji-missing {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--text-error);
+  cursor: pointer;
+}
+
+.maw-error {
+  color: var(--text-error);
+  font-family: var(--font-monospace);
+  white-space: pre-wrap;
+}
+
+/* ---------- buttons on the box ---------- */
+
+.maw-infobox .maw-edit,
+.maw-infobox .maw-image-btn {
+  position: absolute;
+  z-index: 1;
+  padding: 4px;
+  border-radius: var(--radius-s, 4px);
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+  transition: opacity 120ms ease-in-out;
+}
+
+.maw-infobox .maw-edit { top: 12px; right: 12px; opacity: 0.45; }
+.maw-infobox .maw-image-btn { top: 4px; left: 4px; opacity: 0; }
+
+.maw-infobox:hover .maw-edit,
+.maw-infobox .maw-edit:focus-visible,
+.maw-infobox .maw-image-wrap:hover .maw-image-btn,
+.maw-infobox .maw-image-btn:focus-visible,
+.is-mobile .maw-infobox .maw-edit,
+.is-mobile .maw-infobox .maw-image-btn { opacity: 1; }
+
+/* ---------- placeholder ---------- */
+
+.maw-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 3 / 4;
+  padding: 8px;
+  border: 1px dashed var(--background-modifier-border-hover, var(--background-modifier-border));
+  border-radius: var(--radius-s, 6px);
+  background: var(--background-modifier-hover);
+  color: var(--text-faint);
+  text-align: center;
+}
+.maw-placeholder[role="button"] { cursor: pointer; }
+.maw-placeholder[role="button"]:hover,
+.maw-placeholder[role="button"]:focus-visible { color: var(--text-muted); border-color: var(--interactive-accent); }
+.maw-placeholder-icon svg { width: 56px; height: 56px; stroke-width: 1.25; }
+.maw-placeholder-text { font-size: 0.85em; }
+
+/* ---------- layout contexts ---------- */
+
+/* In the live-preview editor a float can't wrap the surrounding lines, so pin it right without floating. */
+.markdown-source-view.mod-cm6 .maw-infobox {
+  float: none;
+  margin: 0 0 1em auto;
+  cursor: default;
+}
+
+/* Narrow panes and mobile: full width above the text. */
+.is-mobile .maw-infobox,
+.is-phone .maw-infobox {
+  float: none;
+  width: 100%;
+  margin: 0 0 1em 0;
+}
+
+@media (max-width: 700px) {
+  .maw-infobox {
+    float: none;
+    width: 100%;
+    margin: 0 0 1em 0;
+  }
+}
+
+/* ---------- forms ---------- */
+
+.maw-sheet-modal { width: min(640px, 95vw); }
+.maw-template-modal { width: min(820px, 95vw); }
+.maw-form .setting-item { padding: 6px 0; }
+.maw-form-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.maw-form-buttons .maw-hint { margin-right: auto; color: var(--text-faint); font-size: var(--font-ui-smaller, 0.8em); }
+.maw-form-error { color: var(--text-error); min-height: 1.2em; margin-top: 8px; }
+.maw-form-error:empty { display: none; }
+.maw-required { color: var(--text-error); }
+.maw-form-thumb { display: block; max-width: 72px; max-height: 96px; margin-bottom: 4px; border-radius: 4px; object-fit: cover; }
+.maw-confirm-body { white-space: pre-wrap; }
+.maw-muted { color: var(--text-muted); }
+
+/* template editor rows */
+.maw-field-row .setting-item-info { display: none; }
+.maw-field-row .setting-item-control { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+.maw-field-row input.maw-label-input { width: 13em; }
+.maw-field-row input.maw-key-input { width: 9em; font-family: var(--font-monospace); }
+.maw-field-row input.maw-icon-input { width: 4em; text-align: center; }
+.maw-field-summary { flex-basis: 100%; color: var(--text-faint); font-size: var(--font-ui-smaller, 0.8em); }
+.maw-advanced { margin-top: 16px; }
+.maw-advanced summary { cursor: pointer; color: var(--text-muted); }
+.maw-json { width: 100%; min-height: 220px; margin: 8px 0 0; font-family: var(--font-monospace); font-size: 0.85em; }
+
+/* image picker */
+.maw-suggest { display: flex; align-items: center; gap: 10px; }
+.maw-suggest-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.maw-extra { margin-top: 10px; }
+
+/* colour fields */
+.maw-swatch {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.4em;
+  vertical-align: -0.12em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  background: var(--maw-c);
+}
+.maw-color-picker { width: 2.4em; height: 2em; padding: 0 2px; cursor: pointer; }

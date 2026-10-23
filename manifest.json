@@ -1,0 +1,11 @@
+{
+  "id": "make-a-wiki",
+  "name": "Make-a-Wiki",
+  "version": "0.5.1",
+  "minAppVersion": "1.4.0",
+  "description": "Wiki-style infobox sheets for your story's characters, items and anything else: customisable templates, coloured badges, dictionary links, and forms to create and edit them.",
+  "author": "Bruno Jales de Sousa",
+  "authorUrl": "https://github.com/BrunoJalesSousa",
+  "fundingUrl": "",
+  "isDesktopOnly": false
+}
