@@ -207,4 +207,9 @@
   border-radius: 3px;
   background: var(--maw-c);
 }
+.maw-swatch-empty {
+  border-style: dashed;
+  border-color: var(--text-faint);
+  background: transparent;
+}
 .maw-color-picker { width: 2.4em; height: 2em; padding: 0 2px; cursor: pointer; }

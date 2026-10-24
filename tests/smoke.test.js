@@ -86,7 +86,7 @@ const app = {
     create: async (p, t) => addFile(p, t), createFolder: async () => {}, on: () => ({}),
   },
   metadataCache: {
-    getFileCache: () => null,
+    getFileCache: (f) => (frontmatterOf[f.path] ? { frontmatter: frontmatterOf[f.path] } : null),
     getFirstLinkpathDest: (name) => [...files.values()].map((x) => x.file).find((f) => f.name === name) || null,
     on: () => ({}),
   },
@@ -96,6 +96,7 @@ const app = {
   },
 };
 let alice, openView;
+const frontmatterOf = {}; // path → parsed frontmatter, for getFileCache
 
 const processors = {};
 const commands = {};
@@ -161,6 +162,39 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
   const sw = cRow && cRow.children[1].children[0];
   colorField.hidden = true;
   check("colour shows swatch, not hex text", sw && sw.cls.has("maw-swatch") && sw.style.props["--maw-c"] === "#9fd3c7" && sw.attrs.title === "#9fd3c7" && cRow.children[1].textContent() === "", cRow && cRow.children[1].textContent());
+
+  // a shown colour field keeps its row: empty or invalid → dashed swatch; block empty → the note's color property
+  colorField.hidden = false;
+  const kText = '---\ncolor: "#"\n---\n```character\nname: K\n```\n';
+  const kFile = addFile("Characters/K.md", kText);
+  frontmatterOf[kFile.path] = { color: "#" };
+  const colourCell = (src, sourcePath) => {
+    const e = new El("div");
+    processors.character(src, e, { sourcePath, addChild: (c) => c.onload(), getSectionInfo: () => ({ lineStart: 3 }) });
+    const r = e.all((x) => x.tag === "tr").find((x) => x.children[0].text === "Colour");
+    return r && r.children[1].children[0];
+  };
+  const invalid = colourCell("name: K", kFile.path);
+  check("colour row shown for an invalid property value", invalid && invalid.cls.has("maw-swatch-empty") && invalid.attrs.title === 'Not a colour: "#"', invalid && JSON.stringify(invalid.attrs));
+  const none = colourCell("name: K", "Characters/Nobody.md");
+  check("colour row shown with no value at all", none && none.cls.has("maw-swatch-empty") && none.attrs.title === "No colour set");
+  frontmatterOf[kFile.path] = { color: "#c9a227" };
+  const fromProp = colourCell("name: K", kFile.path);
+  check("colour falls back to the note property", fromProp && !fromProp.cls.has("maw-swatch-empty") && fromProp.style.props["--maw-c"] === "#c9a227");
+  frontmatterOf[kFile.path] = { color: "#" };
+
+  // picking a colour where the native dialog only fires "change" still saves it to the block and the property
+  await plugin.openEditor(kFile, plugin.template("character"), 3);
+  const kForm = modals[modals.length - 1];
+  check("form prefilled from the property", kForm && kForm.values.color === "#");
+  const picker = kForm.contentEl.find("maw-color-picker");
+  picker.value = "#c9a227";
+  picker.fire("change");
+  check("change-only picker updates the form", kForm.values.color === "#c9a227", kForm.values.color);
+  await kForm.submit();
+  const kSaved = files.get(kFile.path).text;
+  check("picked colour saved to block and property", /```character\n[\s\S]*color: "#c9a227"\n```/.test(kSaved) && /^---\ncolor: "#c9a227"\n---/.test(kSaved), kSaved);
+  colorField.hidden = true;
 
   // values with links go through the markdown renderer; everything else stays plain text
   const elL = new El("div");

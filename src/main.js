@@ -356,6 +356,13 @@ function dataToForm(data) {
   return values;
 }
 
+/** A usable CSS colour ("#e06c75", "rebeccapurple", "rgb(…)"); "" and "#" are not. */
+function isColor(v) {
+  if (!v) return false;
+  if (typeof CSS !== "undefined" && CSS.supports) return CSS.supports("color", v);
+  return /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v);
+}
+
 // [[wikilinks]] and [text](url) links. Only values containing one are rendered as markdown; everything else
 // stays plain text, so "~2", "- x" or "1." never turn into strikethrough or lists.
 const LINK_RE = /\[\[[^\]]+\]\]|\[[^\]]*\]\([^)]+\)/;
@@ -510,6 +517,10 @@ class MakeAWikiPlugin extends Plugin {
 
     // Image paths in blocks are plain text, so Obsidian's link updater doesn't touch them. Do it ourselves.
     this.registerEvent(this.app.vault.on("rename", (file, oldPath) => this.onImageRenamed(file, oldPath)));
+    // property fields fall back to the note's properties, so redraw that note's boxes when they change
+    this.registerEvent(this.app.metadataCache.on("changed", (file) => {
+      for (const box of this.boxes) if (box.sourcePath === file.path) box.render();
+    }));
 
     this.addSettingTab(new InfoboxSettingTab(this.app, this));
   }
@@ -745,9 +756,15 @@ class MakeAWikiPlugin extends Plugin {
     const tbody = box.createEl("table", { cls: "maw-table" }).createEl("tbody");
     const known = new Set(["image"]);
     const rows = [];
+    // Like the edit form: a field saved to a note property falls back to that property when the block has no value.
+    const fm = this.app.metadataCache.getFileCache(note instanceof TFile ? note : { path: sourcePath })?.frontmatter || {};
+    const blank = (v) => v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length);
     for (const f of tpl.fields) {
       known.add(f.key);
-      if (data[f.key] !== undefined && !f.hidden) rows.push([f, data[f.key]]);
+      if (f.hidden) continue;
+      const v = !blank(data[f.key]) ? data[f.key] : f.property && !blank(fm[f.property]) ? fm[f.property] : data[f.key];
+      // a shown colour field always gets its row, so an empty colour is visible as such
+      if (v !== undefined || f.type === "color") rows.push([f, v ?? ""]);
     }
     for (const [k, v] of Object.entries(data)) {
       if (!known.has(k)) rows.push([{ key: k, label: k, type: "text", unknown: true }, v]);
@@ -755,7 +772,7 @@ class MakeAWikiPlugin extends Plugin {
 
     let shown = 0;
     for (const [field, value] of rows) {
-      if (value === null || value === "" || (Array.isArray(value) && !value.length)) continue;
+      if (blank(value) && field.type !== "color") continue;
       const tr = tbody.createEl("tr", { cls: field.unknown ? "maw-unknown" : "" });
       tr.createEl("th", { text: field.label, attr: field.unknown ? { title: `"${field.key}" isn't a field of the ${tpl.name} template` } : {} });
       this.renderValue(tr.createEl("td"), field, value, sourcePath, child);
@@ -769,9 +786,15 @@ class MakeAWikiPlugin extends Plugin {
 
   renderValue(td, field, value, sourcePath, child) {
     if (field.type === "color") {
-      // just the colour; the code is in the tooltip
-      const sw = td.createSpan({ cls: "maw-swatch", attr: { title: String(value), "aria-label": String(value) } });
-      sw.setCssProps({ "--maw-c": String(value) });
+      // just the colour; the code is in the tooltip. Empty or invalid → a dashed "no colour" swatch.
+      const v = String(value ?? "").trim();
+      if (!isColor(v)) {
+        const tip = v ? `Not a colour: "${v}"` : "No colour set";
+        td.createSpan({ cls: "maw-swatch maw-swatch-empty", attr: { title: tip, "aria-label": tip } });
+        return;
+      }
+      const sw = td.createSpan({ cls: "maw-swatch", attr: { title: v, "aria-label": v } });
+      sw.setCssProps({ "--maw-c": v });
       return;
     }
 
@@ -1089,11 +1112,14 @@ class SheetModal extends GuardedModal {
           const picker = s.controlEl.createEl("input", { cls: "maw-color-picker", attr: { type: "color", "aria-label": `Pick ${f.label}` } });
           const hex = (v) => (/^#[0-9a-f]{6}$/i.test(v) ? v : /^#[0-9a-f]{3}$/i.test(v) ? "#" + v.slice(1).replace(/./g, "$&$&") : null);
           picker.value = hex(t.getValue()) || hex(f.hint || "") || "#888888";
-          picker.addEventListener("input", () => {
+          // Some native pickers (e.g. Linux/Wayland) only fire "change", when the dialog closes.
+          const pick = () => {
             t.setValue(picker.value);
             this.values[f.key] = picker.value;
             this.dirty = true;
-          });
+          };
+          picker.addEventListener("input", pick);
+          picker.addEventListener("change", pick);
           t.inputEl.addEventListener("input", () => { const h = hex(t.getValue()); if (h) picker.value = h; });
         }
         this.inputs.push(t.inputEl);
@@ -1684,5 +1710,5 @@ module.exports = MakeAWikiPlugin;
 module.exports._test = {
   toYaml, yamlScalar, scanBlocks, locateBlock, rewriteBlock, setYamlLine,
   setFrontmatterProp, renameKeysInBlocks, renameBlockId, retargetImage, formToData, dataToForm,
-  fillFileName, fillPattern, linkText, hasLinks, normalizeTemplate, propertyUpdates, applyProperties, splitProps, validateTemplate, migrateSettings, CHARACTER_TEMPLATE, BLANK_TEMPLATE,
+  fillFileName, fillPattern, linkText, hasLinks, isColor, normalizeTemplate, propertyUpdates, applyProperties, splitProps, validateTemplate, migrateSettings, CHARACTER_TEMPLATE, BLANK_TEMPLATE,
 };
