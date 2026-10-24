@@ -1,7 +1,7 @@
 {
   "id": "make-a-wiki",
   "name": "Make-a-Wiki",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "1.4.0",
   "description": "Create wiki-style infoboxes for characters, items and anything else, with custom templates, coloured badges and edit forms.",
   "author": "Bruno Jales de Sousa",

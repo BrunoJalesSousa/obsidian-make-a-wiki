@@ -1,6 +1,6 @@
 {
   "name": "make-a-wiki",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Wiki-style infobox sheets for Obsidian",
   "main": "main.js",
   "scripts": {
