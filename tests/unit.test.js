@@ -135,5 +135,14 @@ eq("property name validation", T.validateTemplate(T.normalizeTemplate({ name: "I
 eq("reserved property", T.validateTemplate(T.normalizeTemplate({ name: "I", id: "i", fields: [{ label: "N" }, { label: "X", property: "tags" }] }), []) !== null, true);
 eq("character template valid", T.validateTemplate(T.normalizeTemplate(T.CHARACTER_TEMPLATE), []), null);
 
+eq("linkText alias", T.linkText("[[Jap Dictionary#克 (Katsu)|克]][[Jap Dictionary#己 (Mi)|己]] [[Jap Dictionary#橋 (Hashi)|橋]]"), "克己 橋");
+eq("linkText plain target", T.linkText("[[Katsumi Hashimoto]]"), "Katsumi Hashimoto");
+eq("linkText markdown link", T.linkText("see [docs](https://x.y)"), "see docs");
+eq("linkText leaves plain text", T.linkText("~2, ???"), "~2, ???");
+eq("hasLinks", [T.hasLinks("[[A]]"), T.hasLinks("[t](u)"), T.hasLinks("~2"), T.hasLinks("[a, b]")], [true, true, false, false]);
+eq("title pattern strips links", T.fillPattern("{name} - {kanji}", { name: "Katsumi Hashimoto", kanji: "[[Jap Dictionary#克 (Katsu)|克]][[Jap Dictionary#己 (Mi)|己]] [[Jap Dictionary#橋 (Hashi)|橋]][[Jap Dictionary#本 (Moto)|本]]" }), "Katsumi Hashimoto - 克己 橋本");
+eq("file name from a linked value", T.fillFileName("{owner}", { owner: "[[Katsumi Hashimoto]]" }), "Katsumi Hashimoto");
+eq("linked value survives a yaml round trip", pyParse(T.toYaml({ kanji: "[[Jap Dictionary#克 (Katsu)|克]] [[X]]" })).kanji, "[[Jap Dictionary#克 (Katsu)|克]] [[X]]");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

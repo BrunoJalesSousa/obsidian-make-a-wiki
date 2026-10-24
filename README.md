@@ -67,6 +67,14 @@ tags: [Curious, Patient, Shy]
 
 Lists are written `[a, b, c]`. Keys the template doesn't know about still show up in the box (in italics), and are kept when you save from the form.
 
+Values can contain links — `[[Note]]`, `[[Note#Heading|shown text]]` or `[text](https://…)` — which work in the box like anywhere else (click, Ctrl/Cmd+click for a new tab, hover for a preview). Quote a value that has links, or YAML reads the brackets as a list:
+
+```character
+kanji: "[[Jap Dictionary#克 (Katsu)|克]][[Jap Dictionary#己 (Mi)|己]] [[Jap Dictionary#橋 (Hashi)|橋]][[Jap Dictionary#本 (Moto)|本]]"
+```
+
+Titles and file names built from a linked value use the shown text ("克己 橋本"). Badges show the link's text but aren't clickable.
+
 ---
 
 ## Templates

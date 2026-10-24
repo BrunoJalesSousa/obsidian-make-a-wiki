@@ -10,7 +10,7 @@
  */
 const {
   Plugin, PluginSettingTab, Setting, Modal, FuzzySuggestModal, SuggestModal, Notice, TFile,
-  MarkdownView, MarkdownRenderChild, Platform, parseYaml, normalizePath, setIcon, debounce,
+  MarkdownView, MarkdownRenderChild, MarkdownRenderer, Keymap, Platform, parseYaml, normalizePath, setIcon, debounce,
 } = require("obsidian");
 
 const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "webp", "gif", "svg", "bmp", "avif"]);
@@ -356,11 +356,23 @@ function dataToForm(data) {
   return values;
 }
 
+// [[wikilinks]] and [text](url) links. Only values containing one are rendered as markdown; everything else
+// stays plain text, so "~2", "- x" or "1." never turn into strikethrough or lists.
+const LINK_RE = /\[\[[^\]]+\]\]|\[[^\]]*\]\([^)]+\)/;
+const hasLinks = (s) => LINK_RE.test(String(s));
+
+/** "[[Jap Dictionary#克 (Katsu)|克]]" → "克", "[[Note]]" → "Note", "[t](url)" → "t". For titles, file names, badges. */
+function linkText(s) {
+  return String(s)
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g, (_, target, alias) => (alias ?? target).trim())
+    .replace(/\[([^\]]*)\]\([^)]+\)/g, "$1");
+}
+
 /** "{name} ({rarity})" + values → "Rusty Key (Rare)"; empty tokens drop their separators. */
 function fillPattern(pattern, values) {
   let out = pattern.replace(/\{([^}]+)\}/g, (_, k) => {
     const v = values[k];
-    return Array.isArray(v) ? v.join(", ") : (v ?? "").toString().trim();
+    return linkText(Array.isArray(v) ? v.join(", ") : (v ?? "").toString().trim());
   });
   out = out.replace(/\s{2,}/g, " ").replace(/^[\s\-–—_,.]+|[\s\-–—_,.]+$/g, "");
   return out.trim();
@@ -676,6 +688,7 @@ class MakeAWikiPlugin extends Plugin {
     }
 
     const box = el.createDiv({ cls: `maw-infobox maw-template-${tpl.id}` });
+    this.wireLinks(box, sourcePath, child);
     // In live preview a click inside a code block widget moves the cursor in and reveals the source.
     // Swallow mousedown so the box stays rendered; raw YAML stays reachable via Obsidian's </> button.
     box.addEventListener("mousedown", (evt) => evt.stopPropagation());
@@ -766,7 +779,7 @@ class MakeAWikiPlugin extends Plugin {
       const v = Array.isArray(value) ? value.join(", ") : String(value);
       const rule = this.badgeRule(field, v);
       if (rule) this.badge(td, v, rule);
-      else td.setText(v);
+      else this.text(td, v, sourcePath, child);
       return;
     }
 
@@ -775,7 +788,7 @@ class MakeAWikiPlugin extends Plugin {
       items.forEach((item, i) => {
         const rule = field.type === "badges" ? this.badgeRule(field, item) : null;
         if (rule) this.badge(td, item, rule);
-        else td.appendText(item);
+        else this.text(td, item, sourcePath, child);
         if (i < items.length - 1) td.appendText(rule ? " " : ", ");
       });
       return;
@@ -785,10 +798,42 @@ class MakeAWikiPlugin extends Plugin {
       td.createEl("code", { text: JSON.stringify(value) });
       return;
     }
-    td.setText(Array.isArray(value) ? value.join(", ") : String(value));
+    this.text(td, Array.isArray(value) ? value.join(", ") : String(value), sourcePath, child);
+  }
+
+  /** Appends `s` to `parent`: plain text, or rendered inline markdown when it contains a link. */
+  text(parent, s, sourcePath, child) {
+    if (!hasLinks(s)) return parent.appendText(s);
+    const span = parent.createSpan({ cls: "maw-md" });
+    MarkdownRenderer.render(this.app, s, span, sourcePath, child).then(() => {
+      // unwrap the <p> the renderer adds, so the value stays inline
+      const p = span.childElementCount === 1 && span.firstElementChild.tagName === "P" ? span.firstElementChild : null;
+      if (p) span.replaceChildren(...p.childNodes);
+    });
+  }
+
+  /** Internal links inside the box: click opens (Ctrl/Cmd+click in a new tab), hover shows the page preview. */
+  wireLinks(box, sourcePath, child) {
+    const target = (evt) => evt.target instanceof HTMLElement && evt.target.closest("a.internal-link");
+    box.addEventListener("click", (evt) => {
+      const a = target(evt);
+      if (!a) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+      this.app.workspace.openLinkText(a.getAttr("data-href") || a.getAttr("href") || "", sourcePath, Keymap.isModEvent(evt));
+    });
+    box.addEventListener("mouseover", (evt) => {
+      const a = target(evt);
+      if (!a) return;
+      this.app.workspace.trigger("hover-link", {
+        event: evt, source: "preview", hoverParent: child, targetEl: a,
+        linktext: a.getAttr("data-href") || a.getAttr("href") || "", sourcePath,
+      });
+    });
   }
 
   badge(parent, text, rule) {
+    text = linkText(text);
     const el = parent.createSpan({ cls: "maw-badge", text: rule.icon ? `${rule.icon} ${text}` : text });
     el.setCssProps({ "--maw-c": colorVar(rule.color || "accent") });
     return el;
@@ -1639,5 +1684,5 @@ module.exports = MakeAWikiPlugin;
 module.exports._test = {
   toYaml, yamlScalar, scanBlocks, locateBlock, rewriteBlock, setYamlLine,
   setFrontmatterProp, renameKeysInBlocks, renameBlockId, retargetImage, formToData, dataToForm,
-  fillFileName, fillPattern, normalizeTemplate, propertyUpdates, applyProperties, splitProps, validateTemplate, migrateSettings, CHARACTER_TEMPLATE, BLANK_TEMPLATE,
+  fillFileName, fillPattern, linkText, hasLinks, normalizeTemplate, propertyUpdates, applyProperties, splitProps, validateTemplate, migrateSettings, CHARACTER_TEMPLATE, BLANK_TEMPLATE,
 };

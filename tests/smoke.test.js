@@ -106,8 +106,10 @@ class Plugin extends Component {
   registerMarkdownCodeBlockProcessor(id, f) { processors[id] = f; }
 }
 
+const rendered = []; // markdown handed to MarkdownRenderer
+const MarkdownRenderer = { render: async (app, md, el) => { rendered.push(md); el._mk("a", { cls: "internal-link", text: md }); } };
 const stub = {
-  Plugin, PluginSettingTab: class {}, Setting: TrackedSetting, Modal, FuzzySuggestModal: Modal, SuggestModal: Modal,
+  Plugin, MarkdownRenderer, PluginSettingTab: class {}, Setting: TrackedSetting, Modal, FuzzySuggestModal: Modal, SuggestModal: Modal,
   Notice: class { constructor(m) { notices.push(m); } }, TFile, Keymap: { isModEvent: () => false }, MarkdownView, MarkdownRenderChild,
   Platform: { isMacOS: false }, parseYaml, normalizePath: (p) => p, setIcon: () => {}, debounce: (f) => f,
 };
@@ -159,6 +161,16 @@ const check = (name, ok, extra = "") => { ok ? pass++ : fail++; if (!ok) console
   const sw = cRow && cRow.children[1].children[0];
   colorField.hidden = true;
   check("colour shows swatch, not hex text", sw && sw.cls.has("maw-swatch") && sw.style.props["--maw-c"] === "#9fd3c7" && sw.attrs.title === "#9fd3c7" && cRow.children[1].textContent() === "", cRow && cRow.children[1].textContent());
+
+  // values with links go through the markdown renderer; everything else stays plain text
+  const elL = new El("div");
+  rendered.length = 0;
+  processors.character("name: L\nage: ~2\nsexuality: \"[[Glossary#N/A|N/A]]\"\ntags: [\"[[Shy]]\", Calm]\nkanji: \"[[Jap Dictionary#克 (Katsu)|克]]\"",
+    elL, { sourcePath: alice.path, addChild: (c) => c.onload(), getSectionInfo: () => null });
+  check("linked values rendered as markdown", rendered.includes("[[Jap Dictionary#克 (Katsu)|克]]") && rendered.includes("[[Glossary#N/A|N/A]]"), JSON.stringify(rendered));
+  check("plain values never rendered", !rendered.some((m) => m === "~2" || m === "L" || m === "Calm"), JSON.stringify(rendered));
+  const lBadges = elL.all((e) => e.cls.has("maw-badge")).map((b) => b.text);
+  check("badge labels show link text, not brackets", lBadges.includes("Shy") && lBadges.includes("Calm"), JSON.stringify(lBadges));
 
   // click ✎ → form opens with current values
   box.find("maw-edit").fire("click");
