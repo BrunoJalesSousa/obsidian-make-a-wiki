@@ -24,7 +24,7 @@ This is a WIP: things may change or break as it evolves. Expect some bugs here a
 ## Installation
 
 ### From Obsidian Community Plugins
-Not listed yet. Until then:
+Just hit install?...
 
 ### Manually
 1. Download `main.js`, `styles.css` and `manifest.json` from the [latest release](https://github.com/BrunoJalesSousa/obsidian-make-a-wiki/releases)
